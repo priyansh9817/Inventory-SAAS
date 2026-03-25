@@ -81,117 +81,131 @@ const Transactions = () => {
     saveAs(blob, "inventory-report.xlsx");
   };
 
-  return (
-   
+ return (
+  <div className="p-6">
+
+    <h1 className="text-2xl font-bold mb-6">Transactions</h1>
+
+    {/* ➕ Add Transaction */}
+    <div className="mb-6 flex flex-wrap gap-3">
+
+      {/* TYPE */}
+      <select
+        className="bg-[#111827] border border-gray-700 p-2 rounded text-gray-300 focus:ring-2 focus:ring-indigo-500"
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+      >
+        <option value="purchase">Purchase</option>
+        <option value="sale">Sale</option>
+      </select>
+
+      {/* PRODUCT */}
+      <select
+        className="bg-[#111827] border border-gray-700 p-2 rounded text-gray-300 focus:ring-2 focus:ring-indigo-500"
+        value={productId}
+        onChange={(e) => setProductId(e.target.value)}
+      >
+        <option value="">Select Product</option>
+        {products.map((p) => (
+          <option key={p._id} value={p._id}>
+            {p.name} (Stock: {p.stock})
+          </option>
+        ))}
+      </select>
+
+      {/* QUANTITY */}
+      <input
+        type="number"
+        className="bg-[#111827] border border-gray-700 p-2 rounded text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+        placeholder="Enter quantity (e.g. 5)"
+        value={quantity}
+        onChange={(e) => setQuantity(e.target.value)}
+      />
+
+      {/* PRICE */}
+      <input
+        type="number"
+        className="bg-[#111827] border border-gray-700 p-2 rounded text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+        placeholder={
+          type === "sale"
+            ? "Selling price (₹)"
+            : "Purchase price (₹)"
+        }
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+      />
+
+      {/* ADD BUTTON */}
+      <button
+        onClick={handleAdd}
+        className="bg-indigo-500 hover:bg-indigo-600 transition px-4 py-2 rounded text-white"
+      >
+        Add
+      </button>
+    </div>
+
+    {/* 🔍 FILTER */}
+    <div className="flex flex-wrap gap-3 mb-6">
+
+      <select
+        className="bg-[#111827] border border-gray-700 p-2 rounded text-gray-300"
+        value={filterType}
+        onChange={(e) => setFilterType(e.target.value)}
+      >
+        <option value="">All</option>
+        <option value="sale">Sales</option>
+        <option value="purchase">Purchases</option>
+      </select>
+
+      <button
+        onClick={fetchTransactions}
+        className="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded"
+      >
+        Apply Filter
+      </button>
+
+      <button
+        onClick={() => exportToExcel(transactions)}
+        className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded"
+      >
+        Export Excel
+      </button>
+    </div>
+
+    {/* 📄 TABLE */}
     <div className="overflow-x-auto">
-  <table className="min-w-full text-sm min-w-full text-sm text-left">
-     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Transactions</h1>
+      <table className="w-full text-sm text-left border border-gray-800">
 
-      {/* ➕ Add Transaction */}
-      <div className="mb-6 flex gap-2 flex-wrap">
-
-        <select
-          className="border p-2"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="purchase">Purchase</option>
-          <option value="sale">Sale</option>
-        </select>
-
-        <select
-          className="border p-2"
-          value={productId}
-          onChange={(e) => setProductId(e.target.value)}
-        >
-          <option value="">Select Product</option>
-          {products.map((p) => (
-            <option key={p._id} value={p._id}>
-              {p.name} (Stock: {p.stock})
-            </option>
-          ))}
-        </select>
-
-        <input
-          className="border p-2"
-          placeholder="Quantity"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-        />
-
-        <input
-          className="border p-2"
-          placeholder="Price"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-        />
-
-        <button
-          onClick={handleAdd}
-          className="bg-indigo-500 px-4 py-2 rounded w-full sm:w-auto"
-        >
-          Add
-        </button>
-      </div>
-
-      {/* 🔍 Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
-        <select
-          className="p-2 rounded bg-[#111827] border border-gray-700 w-full sm:w-auto"
-          value={filterType}
-          onChange={(e) => {
-            setFilterType(e.target.value);
-          }}
-        >
-          <option value=""  >All</option>
-          <option value="sale">Sales</option>
-          <option value="purchase">Purchases</option>
-        </select>
-
-        <button
-          onClick={fetchTransactions}
-          className="bg-indigo-500 hover:bg-indigo-600 transition px-4 py-2 rounded w-full sm:w-auto"
-        >
-          Apply Filter
-        </button>
-
-        <button
-          onClick={() => exportToExcel(transactions)}
-          className="bg-green-500 px-4 py-2 rounded w-full sm:w-auto"
-        >
-          Export Excel
-        </button>
-      </div>
-
-      {/* 📄 Transactions Table */}
-      <table className="w-full border">
         <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2">Type</th>
-            <th className="p-2">Product</th>
-            <th className="p-2">Qty</th>
-            <th className="p-2">Price</th>
-            <th className="p-2">Total</th>
+          <tr className="bg-[#1f2937] text-gray-300">
+            <th className="p-3">Type</th>
+            <th className="p-3">Product</th>
+            <th className="p-3">Qty</th>
+            <th className="p-3">Price</th>
+            <th className="p-3">Total</th>
           </tr>
         </thead>
 
         <tbody>
           {transactions.map((t) => (
-            <tr key={t._id} className="text-center border-t">
-              <td className="p-2">{t.type}</td>
-              <td className="p-2">{t.productId?.name}</td>
-              <td className="p-2">{t.quantity}</td>
-              <td className="p-2">{t.pricePerUnit}</td>
-              <td className="p-2">{t.totalAmount}</td>
+            <tr
+              key={t._id}
+              className="border-t border-gray-800 hover:bg-[#1f2937] transition"
+            >
+              <td className="p-3 capitalize">{t.type}</td>
+              <td className="p-3">{t.productId?.name}</td>
+              <td className="p-3">{t.quantity}</td>
+              <td className="p-3">₹{t.pricePerUnit}</td>
+              <td className="p-3 text-green-400">₹{t.totalAmount}</td>
             </tr>
           ))}
         </tbody>
+
       </table>
     </div>
-  </table>
-</div>
-  );
+
+  </div>
+);
 };
 
 export default Transactions;
