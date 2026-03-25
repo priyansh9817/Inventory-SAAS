@@ -40,7 +40,7 @@ const Transactions = () => {
   // ➕ Add Transaction
   const handleAdd = async () => {
     if (!productId || !quantity || !price) {
-      alert("All fields required");
+      toast.error("All fields required");
       return;
     }
 
@@ -59,7 +59,7 @@ const Transactions = () => {
       await fetchProducts();     // 🔥 update stock
 
     } catch (error) {
-      alert(error.response?.data?.message || "Error");
+      toast.error(error.response?.data?.message || "Error");
     }
   };
 

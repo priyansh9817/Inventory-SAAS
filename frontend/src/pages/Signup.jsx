@@ -25,13 +25,13 @@ const Signup = () => {
     // ✅ Store token
     localStorage.setItem("token", res.data.token);
 
-    alert("Signup successful ✅");
+    toast.success("Signup successful ✅");
 
     // ✅ Redirect to Dashboard
     navigate("/dashboard");
 
   } catch (error) {
-    alert(error.response?.data?.message || "Error");
+    toast.error(error.response?.data?.message || "Error");
   }
 };
 
