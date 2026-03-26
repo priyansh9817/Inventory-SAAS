@@ -71,7 +71,7 @@ exports.getDashboard = async (req, res) => {
       } else if (t.type === "purchase") {
         totalPurchase += t.totalAmount;
       }
-      totalAmount += t.totalAmount;
+      totalAmount += t.totalAmount; // total amount 
     });
 
     const totalTransactions = transactions.length;
