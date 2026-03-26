@@ -63,6 +63,7 @@ exports.getDashboard = async (req, res) => {
 
     let totalSales = 0;
     let totalPurchase = 0;
+    let totalAmount = 0; 
 
     transactions.forEach((t) => {
       if (t.type === "sale") {
@@ -70,6 +71,7 @@ exports.getDashboard = async (req, res) => {
       } else if (t.type === "purchase") {
         totalPurchase += t.totalAmount;
       }
+      totalAmount += t.totalAmount;
     });
 
     const totalTransactions = transactions.length;
@@ -80,6 +82,7 @@ exports.getDashboard = async (req, res) => {
       totalSales,
       totalPurchase,
       profit,
+      totalAmount,
     });
 
   } catch (error) {

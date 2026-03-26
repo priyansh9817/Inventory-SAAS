@@ -184,35 +184,53 @@ const Dashboard = () => {
       </div>
 
       {/* 📊 CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-[#0f172a] p-5 rounded-xl border border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300">
 
-        <div className="bg-[#111827] p-4 rounded border border-gray-800">
-          <h2>Total Sales</h2>
-          <p className="text-xl text-green-400">₹{data.totalSales || 0}</p>
-        </div>
+  {/* 🔥 TOP */}
+  <div className="flex items-center justify-between">
+    <p className="text-gray-400 text-sm">Transactions</p>
 
-        <div className="bg-[#111827] p-4 rounded border border-gray-800">
-          <h2>Total Purchase</h2>
-          <p className="text-xl text-yellow-400">₹{data.totalPurchase || 0}</p>
-        </div>
+    <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded">
+      Total
+    </span>
+  </div>
 
-        <div className="bg-[#111827] p-4 rounded border border-gray-800">
-          <h2>Profit</h2>
-          <p className="text-xl text-indigo-400">₹{data.profit || 0}</p>
-        </div>
+  {/* 🔥 COUNT */}
+  <h2 className="text-2xl font-bold text-white mt-2">
+    ₹{data.totalAmount}
+  </h2>
 
-        <div className="bg-[#111827] p-4 rounded border border-gray-800">
-          <h2>Transactions</h2>
-          <p className="text-xl">{data.totalTransactions || 0}</p>
-        </div>
-        <button
-          onClick={() => exportToExcel(chartData)}
-          className="bg-green-500 px-4 py-2 rounded"
-        >
-          Export Excel
-        </button>
+  {/* 🔥 TOTAL AMOUNT */}
+  <p className="text-lg text-indigo-400 mt-1 font-semibold">
+    {data.totalTransactions}
+    
+  </p>
 
-      </div>
+  {/* 🔥 DIVIDER */}
+  <div className="border-t border-gray-800 my-3"></div>
+
+  {/* 🔥 SALES + PURCHASE */}
+  <div className="flex justify-between text-sm">
+
+    {/* SALES */}
+    <div className="flex flex-col">
+      <span className="text-gray-400">Sales</span>
+      <span className="text-green-400 font-medium">
+        ₹{data.totalSales}
+      </span>
+    </div>
+
+    {/* PURCHASE */}
+    <div className="flex flex-col text-right">
+      <span className="text-gray-400">Purchase</span>
+      <span className="text-red-400 font-medium">
+        ₹{data.totalPurchase}
+      </span>
+    </div>
+
+  </div>
+
+</div>
 
       {/* 📈 REAL CHART */}
       <div className="mt-8 bg-[#111827] p-4 rounded border border-gray-800">
