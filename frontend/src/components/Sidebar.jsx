@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Package, ArrowRightLeft } from "lucide-react";
 
-const Sidebar = () => {
+const Sidebar = ({ closeSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -24,37 +24,65 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="w-64 h-screen bg-[#020617] border-r border-gray-800 p-4">
+    <div className="w-64 h-full bg-[#020617] border-r border-gray-800 p-4 flex flex-col">
 
-      {/* Logo */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-indigo-400">
+      {/* 🔥 LOGO */}
+      <div className="mb-10">
+        <h1 className="text-2xl font-bold text-indigo-400 tracking-wide">
           Pratima
         </h1>
-        <p className="text-sm text-gray-400">Enterprises</p>
+        <p className="text-xs text-gray-500">Enterprises</p>
       </div>
 
-      {/* Menu */}
-      <div className="flex flex-col gap-2">
+      {/* 🔥 MENU */}
+      <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
+
         {menu.map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`flex items-center gap-2 p-2 rounded transition ${
-                isActive
-                  ? "bg-indigo-500 text-white"
-                  : "hover:bg-gray-800 text-gray-300"
-              }`}
+              onClick={() => {
+                navigate(item.path);
+                if (closeSidebar) closeSidebar(); // ✅ safe auto close
+              }}
+              className={`
+                relative group flex items-center gap-3 px-3 py-2 rounded-lg
+                transition-all duration-200 ease-in-out
+
+                ${
+                  isActive
+                    ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
+                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                }
+              `}
             >
-              {item.icon}
-              {item.name}
+              {/* 🔥 ACTIVE LEFT INDICATOR */}
+              {isActive && (
+                <span className="absolute left-0 top-0 h-full w-1 bg-indigo-400 rounded-r"></span>
+              )}
+
+              {/* 🔥 ICON */}
+              <span className="transition-transform duration-200 group-hover:scale-110">
+                {item.icon}
+              </span>
+
+              {/* 🔥 TEXT */}
+              <span className="text-sm font-medium tracking-wide">
+                {item.name}
+              </span>
             </button>
           );
         })}
+
       </div>
+
+      {/* 🔥 FOOTER */}
+      <div className="pt-4 border-t border-gray-800 text-xs text-gray-500">
+        © 2026 Pratima
+      </div>
+
     </div>
   );
 };
