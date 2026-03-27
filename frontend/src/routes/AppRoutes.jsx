@@ -6,7 +6,7 @@ import Products from "../pages/Products";
 import Transactions from "../pages/Transactions";
 import Layout from "../components/Layout";
 import PrivateRoute from "./PrivateRoute";
-
+import Ledger from "../pages/Ledger";
 const AppRoutes = () => {
   return (
     <BrowserRouter>
@@ -16,6 +16,7 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
         <Route path="/products" element={<PrivateRoute><Layout><Products /></Layout></PrivateRoute>} />
         <Route path="/transactions" element={<PrivateRoute><Layout><Transactions /></Layout></PrivateRoute>} />
+        <Route path="/ledger" element={<PrivateRoute><Layout><Ledger /></Layout></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   );
