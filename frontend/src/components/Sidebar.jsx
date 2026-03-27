@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ArrowRightLeft } from "lucide-react";
+import { LayoutDashboard, Package, ArrowRightLeft, BarChart } from "lucide-react";
 
 const Sidebar = ({ closeSidebar }) => {
   const navigate = useNavigate();
@@ -21,7 +21,11 @@ const Sidebar = ({ closeSidebar }) => {
       path: "/transactions",
       icon: <ArrowRightLeft size={18} />,
     },
-  ];
+    {
+  name: "Ledger",
+  path: "/ledger",
+  icon: <BarChart size={18} />,
+}];
 
   return (
     <div className="w-64 h-full bg-[#020617] border-r border-gray-800 p-4 flex flex-col">

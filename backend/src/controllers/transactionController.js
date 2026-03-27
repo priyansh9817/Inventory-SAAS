@@ -132,3 +132,45 @@ exports.getTransactions = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// get ledger by product
+exports.getLedger = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const transactions = await Transaction.find({
+      productId,
+      userId: req.user.id,
+    }).sort({ transactionDate: 1 });
+
+    let balance = 0;
+
+    const ledger = transactions.map((t) => {
+      let qtyIn = 0;
+      let qtyOut = 0;
+
+      if (t.type === "purchase") {
+        qtyIn = t.quantity;
+        balance += qtyIn;
+      } else {
+        qtyOut = t.quantity;
+        balance -= qtyOut;
+      }
+
+      return {
+        date: t.transactionDate,
+        type: t.type,
+        qtyIn,
+        qtyOut,
+        balance,
+        price: t.pricePerUnit,
+        total: t.totalAmount,
+      };
+    });
+
+    res.json(ledger);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
