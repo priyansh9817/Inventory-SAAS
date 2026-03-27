@@ -4,7 +4,13 @@ const Product = require("../models/Product");
 // ➕ ADD TRANSACTION
 exports.addTransaction = async (req, res) => {
   try {
-    const { type, productId, quantity, pricePerUnit } = req.body;
+    const {
+      type,
+      productId,
+      quantity,
+      pricePerUnit,
+      transactionDate, // 🔥 NEW
+    } = req.body;
 
     // ✅ validation
     if (!type || !productId || !quantity || !pricePerUnit) {
@@ -15,7 +21,7 @@ exports.addTransaction = async (req, res) => {
       return res.status(400).json({ message: "Invalid values" });
     }
 
-    // ✅ find product (user-specific)
+    // ✅ find product
     const product = await Product.findOne({
       _id: productId,
       userId: req.user.id,
@@ -41,19 +47,24 @@ exports.addTransaction = async (req, res) => {
       return res.status(400).json({ message: "Invalid type" });
     }
 
-    // save updated stock
     await product.save();
 
-    // calculate total
+    // 🔥 total calculation
     const totalAmount = quantity * pricePerUnit;
 
-    // save transaction
+    // 🔥 save transaction
     const transaction = await Transaction.create({
       type,
       productId,
       quantity,
       pricePerUnit,
       totalAmount,
+
+      // ✅ USER SELECTED DATE
+      transactionDate: transactionDate
+        ? new Date(transactionDate)
+        : new Date(),
+
       userId: req.user.id,
     });
 
@@ -71,6 +82,7 @@ exports.addTransaction = async (req, res) => {
 
 
 // 📄 GET TRANSACTIONS
+
 exports.getTransactions = async (req, res) => {
   try {
     const { startDate, endDate, type } = req.query;
@@ -79,51 +91,41 @@ exports.getTransactions = async (req, res) => {
       userId: req.user.id,
     };
 
-    // ✅ 1. Validate type
+    // ✅ TYPE FILTER
     if (type) {
       if (!["sale", "purchase"].includes(type)) {
         return res.status(400).json({
-          message: "Invalid type (must be sale or purchase)",
+          message: "Invalid type",
         });
       }
       filter.type = type;
     }
 
-    // ✅ 2. Validate dates
+    // ✅ DATE FILTER
     let start, end;
 
     if (startDate) {
       start = new Date(startDate);
-      if (isNaN(start)) {
-        return res.status(400).json({
-          message: "Invalid startDate",
-        });
-      }
     }
 
     if (endDate) {
       end = new Date(endDate);
-      if (isNaN(end)) {
-        return res.status(400).json({
-          message: "Invalid endDate",
-        });
-      }
     }
 
-    // ✅ 3. Apply date filter (flexible)
     if (start && end) {
-      filter.date = { $gte: start, $lte: end };
+      filter.transactionDate = { $gte: start, $lte: end };
     } else if (start) {
-      filter.date = { $gte: start };
+      filter.transactionDate = { $gte: start };
     } else if (end) {
-      filter.date = { $lte: end };
+      filter.transactionDate = { $lte: end };
     }
 
-    // ✅ 4. Fetch data
+    // ✅ FETCH
     const transactions = await Transaction.find(filter)
       .populate("productId", "name category")
-      .sort({ createdAt: -1 });
+      .sort({ transactionDate: -1 });
 
+    // 🔥 FINAL FIX
     res.json(transactions);
 
   } catch (error) {

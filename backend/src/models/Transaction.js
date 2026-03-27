@@ -35,10 +35,14 @@ const transactionSchema = new mongoose.Schema(
       ref: "User",
     },
 
-    date: {
-      type: Date,
-      default: Date.now,
-    },
+    transactionDate: {
+  type: Date, // 🔥 user selected date
+},
+
+createdAt: {
+  type: Date,
+  default: Date.now, // 🔥 system date (already hota hai)
+},
   },
   { timestamps: true }
 );
