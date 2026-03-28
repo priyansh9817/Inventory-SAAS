@@ -89,6 +89,8 @@ exports.getTransactions = async (req, res) => {
 
     const filter = {
       userId: req.user.id,
+      isDeleted: false, // 🔥 IMPORTANT (hide deleted)
+      isDeleted: { $exists: false } // 🔥 IMPORTANT F
     };
 
     // ✅ TYPE FILTER
@@ -101,34 +103,36 @@ exports.getTransactions = async (req, res) => {
       filter.type = type;
     }
 
-    // ✅ DATE FILTER
-    let start, end;
+    // ✅ DATE FILTER (SAFE FORMAT)
+    if (startDate || endDate) {
+      filter.transactionDate = {};
 
-    if (startDate) {
-      start = new Date(startDate);
+      if (startDate) {
+        const start = new Date(startDate + "T00:00:00.000Z");
+        if (isNaN(start)) {
+          return res.status(400).json({ message: "Invalid startDate" });
+        }
+        filter.transactionDate.$gte = start;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate + "T23:59:59.999Z");
+        if (isNaN(end)) {
+          return res.status(400).json({ message: "Invalid endDate" });
+        }
+        filter.transactionDate.$lte = end;
+      }
     }
 
-    if (endDate) {
-      end = new Date(endDate);
-    }
-
-    if (start && end) {
-      filter.transactionDate = { $gte: start, $lte: end };
-    } else if (start) {
-      filter.transactionDate = { $gte: start };
-    } else if (end) {
-      filter.transactionDate = { $lte: end };
-    }
-
-    // ✅ FETCH
+    // ✅ FETCH DATA
     const transactions = await Transaction.find(filter)
       .populate("productId", "name category")
       .sort({ transactionDate: -1 });
 
-    // 🔥 FINAL FIX
     res.json(transactions);
 
   } catch (error) {
+    console.error("GET TRANSACTIONS ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -171,6 +175,55 @@ exports.getLedger = async (req, res) => {
     res.json(ledger);
 
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// SOFT DELETE API (🔥 REVERSE STOCK + HIDE TRANSACTION)
+
+exports.softDeleteTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const transaction = await Transaction.findOne({
+      _id: id,
+      userId: req.user.id,
+      isDeleted: false,
+    });
+
+    if (!transaction) {
+      return res.status(404).json({
+        message: "Transaction not found",
+      });
+    }
+
+    const product = await Product.findById(transaction.productId);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    // 🔥 REVERSE STOCK
+    if (transaction.type === "purchase") {
+      product.stock -= transaction.quantity;
+    } else {
+      product.stock += transaction.quantity;
+    }
+
+    await product.save();
+
+    // 🔥 SOFT DELETE
+    transaction.isDeleted = true;
+    await transaction.save();
+
+    res.json({
+      message: "Transaction deleted safely ✅",
+    });
+
+  } catch (error) {
+    console.error("DELETE ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };

@@ -43,6 +43,10 @@ createdAt: {
   type: Date,
   default: Date.now, // 🔥 system date (already hota hai)
 },
+isDeleted: {
+  type: Boolean,
+  default: false,
+},
   },
   { timestamps: true }
 );
