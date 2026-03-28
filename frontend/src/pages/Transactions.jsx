@@ -98,25 +98,43 @@ const Transactions = () => {
   };
 
   // 🗑 DELETE (SOFT)
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "⚠️ This will affect stock. Delete?"
-    );
+ const handleDelete = async (id) => {
+  const confirmDelete = window.confirm(
+    "⚠️ This will affect stock. Delete?"
+  );
 
-    if (!confirmDelete) return;
+  if (!confirmDelete) return;
 
-    try {
-      setLoading(true);
-      await API.delete(`/transactions/${id}`);
-      toast.success("Deleted successfully ✅");
-      fetchTransactions();
-    } catch {
-      toast.error("Delete failed ❌");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
 
+    await API.delete(`/transactions/${id}`);
+
+    // 🔥 UNDO TOAST
+    toast.custom((t) => (
+  <div className="bg-[#111827] text-white px-4 py-2 rounded shadow flex gap-3 items-center">
+    <span>Deleted</span>
+    <button
+      onClick={async () => {
+        await API.put(`/transactions/restore/${id}`);
+        fetchTransactions();
+        toast.dismiss(t.id);
+      }}
+      className="text-indigo-400"
+    >
+      Undo
+    </button>
+  </div>
+));
+
+    fetchTransactions();
+
+  } catch (err) {
+    toast.error("Delete failed ❌");
+  } finally {
+    setLoading(false);
+  }
+};
   // 📊 EXPORT
   const exportToExcel = () => {
     if (transactions.length === 0) {

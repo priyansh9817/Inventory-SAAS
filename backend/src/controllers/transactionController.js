@@ -34,7 +34,7 @@ exports.addTransaction = async (req, res) => {
     // 🔥 STOCK LOGIC
     if (type === "purchase") {
       product.stock += quantity;
-    } 
+    }
     else if (type === "sale") {
       if (product.stock < quantity) {
         return res.status(400).json({
@@ -42,7 +42,7 @@ exports.addTransaction = async (req, res) => {
         });
       }
       product.stock -= quantity;
-    } 
+    }
     else {
       return res.status(400).json({ message: "Invalid type" });
     }
@@ -89,8 +89,11 @@ exports.getTransactions = async (req, res) => {
 
     const filter = {
       userId: req.user.id,
-      isDeleted: false, // 🔥 IMPORTANT (hide deleted)
-      isDeleted: { $exists: false } // 🔥 IMPORTANT F
+      // 🔥 FIX: handle old + new data
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } },
+      ],
     };
 
     // ✅ TYPE FILTER
@@ -103,7 +106,7 @@ exports.getTransactions = async (req, res) => {
       filter.type = type;
     }
 
-    // ✅ DATE FILTER (SAFE FORMAT)
+    // ✅ DATE FILTER
     if (startDate || endDate) {
       filter.transactionDate = {};
 
@@ -124,7 +127,6 @@ exports.getTransactions = async (req, res) => {
       }
     }
 
-    // ✅ FETCH DATA
     const transactions = await Transaction.find(filter)
       .populate("productId", "name category")
       .sort({ transactionDate: -1 });
@@ -145,7 +147,11 @@ exports.getLedger = async (req, res) => {
     const transactions = await Transaction.find({
       productId,
       userId: req.user.id,
-    }).sort({ transactionDate: 1 });
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } },
+      ],
+    });
 
     let balance = 0;
 
@@ -178,8 +184,6 @@ exports.getLedger = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// SOFT DELETE API (🔥 REVERSE STOCK + HIDE TRANSACTION)
 
 exports.softDeleteTransaction = async (req, res) => {
   try {
@@ -227,6 +231,67 @@ exports.softDeleteTransaction = async (req, res) => {
 
   } catch (error) {
     console.error("DELETE ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+exports.restoreTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const transaction = await Transaction.findOne({
+      _id: id,
+      userId: req.user.id,
+      isDeleted: true,
+    });
+
+    if (!transaction) {
+      return res.status(404).json({
+        message: "Transaction not found",
+      });
+    }
+
+    const product = await Product.findById(transaction.productId);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    // 🔥 RE-APPLY STOCK
+    if (transaction.type === "purchase") {
+      product.stock += transaction.quantity;
+    } else {
+      product.stock -= transaction.quantity;
+    }
+
+    await product.save();
+
+    transaction.isDeleted = false;
+    await transaction.save();
+
+    res.json({
+      message: "Transaction restored ♻️",
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// Deleted Page
+exports.getDeletedTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({
+      userId: req.user.id,
+      isDeleted: true,
+    })
+      .populate("productId", "name")
+      .sort({ transactionDate: -1 });
+
+    res.json(transactions);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
