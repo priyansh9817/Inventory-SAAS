@@ -188,7 +188,10 @@ exports.softDeleteTransaction = async (req, res) => {
     const transaction = await Transaction.findOne({
       _id: id,
       userId: req.user.id,
-      isDeleted: false,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }, // 🔥 FIX
+      ],
     });
 
     if (!transaction) {
