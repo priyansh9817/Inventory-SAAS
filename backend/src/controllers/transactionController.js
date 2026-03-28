@@ -295,3 +295,42 @@ exports.getDeletedTransactions = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// PERMANENT DELETE
+exports.permanentDeleteTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { secret } = req.body;
+
+    // 🔐 SECRET CHECK
+    if (secret !== process.env.DELETE_SECRET) {
+      return res.status(403).json({
+        message: "Invalid secret key ❌",
+      });
+    }
+
+    const transaction = await Transaction.findOne({
+      _id: id,
+      userId: req.user.id,
+      isDeleted: true, // 🔥 only from recycle bin
+    });
+
+    if (!transaction) {
+      return res.status(404).json({
+        message: "Transaction not found",
+      });
+    }
+
+    // 💀 PERMANENT DELETE
+    await Transaction.findByIdAndDelete(id);
+
+    res.json({
+      message: "Transaction permanently deleted 💀",
+      
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+    console.log("SECRET RECEIVED:", req.body);
+  }
+};

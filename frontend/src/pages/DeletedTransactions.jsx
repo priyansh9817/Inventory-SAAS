@@ -27,6 +27,37 @@ const DeletedTransactions = () => {
       toast.error("Restore failed ❌");
     }
   };
+  const handlePermanentDelete = async (id) => {
+
+  // ⚠️ FIRST CONFIRM
+  const confirm1 = window.confirm(
+    "⚠️ This will permanently delete data. Continue?"
+  );
+  if (!confirm1) return;
+
+  // 🔐 SECRET INPUT
+  const secret = prompt("Enter secret key:");
+
+  if (!secret) return;
+
+  try {
+    await API.delete(`/transactions/permanent/${id}`, {
+  data: {
+    secret: secret,
+  },
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+    toast.success("Deleted permanently 💀");
+
+    fetchDeleted();
+
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Error ❌");
+  }
+};
 
   return (
     <div className="p-4 sm:p-6">
@@ -61,9 +92,15 @@ const DeletedTransactions = () => {
                 <td className="p-3">
                   <button
                     onClick={() => handleRestore(t._id)}
-                    className="text-green-400 hover:text-green-500"
+                    className="text-green-400 hover:text-green-500 gap-3"
                   >
                     Restore
+                  </button>
+                  <button
+                    onClick={() => handlePermanentDelete(t._id)}
+                    className="text-red-400 hover:text-green-500 rounded mt-2"
+                  >
+                    Delete Forever
                   </button>
                 </td>
               </tr>
