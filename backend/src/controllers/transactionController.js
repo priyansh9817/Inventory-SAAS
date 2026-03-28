@@ -238,15 +238,19 @@ exports.restoreTransaction = async (req, res) => {
   try {
     const { id } = req.params;
 
+    console.log("RESTORE API HIT:", id);
+
     const transaction = await Transaction.findOne({
       _id: id,
       userId: req.user.id,
-      isDeleted: true,
+      $or: [
+        { isDeleted: true },
+      ],
     });
 
     if (!transaction) {
       return res.status(404).json({
-        message: "Transaction not found",
+        message: "Transaction not found or already active",
       });
     }
 
@@ -267,17 +271,22 @@ exports.restoreTransaction = async (req, res) => {
 
     await product.save();
 
+    // 🔥 RESTORE
     transaction.isDeleted = false;
     await transaction.save();
+
+    console.log("RESTORED SUCCESS");
 
     res.json({
       message: "Transaction restored ♻️",
     });
 
   } catch (error) {
+    console.error("RESTORE ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 // Deleted Page
