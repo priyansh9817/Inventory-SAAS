@@ -92,18 +92,20 @@ const DeletedTransactions = () => {
                   {new Date(t.transactionDate).toLocaleDateString()}
                 </td>
                 <td className="p-3">
-                  <button
-                    onClick={() => handleRestore(t._id)}
-                    className="text-green-400 hover:text-green-500 gap-3"
-                  >
-                    Restore
-                  </button>
-                  <button
-                    onClick={() => handlePermanentDelete(t._id)}
-                    className="text-red-400 hover:text-green-500 rounded mt-2"
-                  >
-                    Delete Forever
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => handleRestore(t._id)}
+                      className="bg-green-500/20 hover:bg-green-500/40 text-green-400 px-3 py-1 rounded text-xs"
+                    >
+                      Restore ♻️
+                    </button>
+                    <button
+                      onClick={() => handlePermanentDelete(t._id)}
+                      className="bg-red-500/20 hover:bg-red-500/40 text-red-400 px-3 py-1 rounded text-xs"
+                    >
+                      Delete Forever 💀
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -150,9 +152,15 @@ const DeletedTransactions = () => {
 
             <button
               onClick={() => handleRestore(t._id)}
-              className="w-full bg-green-500 py-2 rounded"
+              className="w-full bg-green-500 hover:bg-green-600 py-2 rounded mb-2"
             >
               Restore ♻️
+            </button>
+            <button
+              onClick={() => handlePermanentDelete(t._id)}
+              className="w-full bg-red-500/20 hover:bg-red-500/40 text-red-400 py-2 rounded"
+            >
+              Delete Forever 💀
             </button>
           </div>
         ))}
