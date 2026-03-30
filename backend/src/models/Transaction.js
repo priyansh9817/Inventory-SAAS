@@ -47,6 +47,11 @@ isDeleted: {
   type: Boolean,
   default: false,
 },
+branchId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Branch",
+  required: true,
+},
   },
   { timestamps: true }
 );

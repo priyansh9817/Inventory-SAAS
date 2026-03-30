@@ -4,14 +4,13 @@ const mongoose = require("mongoose");
 // 📊 DASHBOARD WITH FILTER (FINAL)
 exports.getDashboard = async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-
+    const { filter, startDate, endDate, branchId } = req.query;
     const userId = req.user.id;
 
     let dateFilter = {};
     const now = new Date();
 
-    // ✅ 1. PREDEFINED FILTERS
+    // ✅ PREDEFINED FILTERS
     if (filter === "daily") {
       const start = new Date();
       start.setHours(0, 0, 0, 0);
@@ -32,68 +31,88 @@ exports.getDashboard = async (req, res) => {
       dateFilter = { $gte: start };
     }
 
-    // ✅ 2. CUSTOM DATE FILTER
+    // ✅ CUSTOM DATE
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
-      if (isNaN(start) || isNaN(end)) {
-        return res.status(400).json({
-          message: "Invalid date format",
-        });
-      }
-
-      dateFilter = {
-        $gte: start,
-        $lte: end,
-      };
+      dateFilter = { $gte: start, $lte: end };
     }
 
-    // ✅ 3. BUILD QUERY
+    // ✅ BASE QUERY
     const query = {
-      userId: userId,
+      userId,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } },
+      ],
     };
 
-    if (Object.keys(dateFilter).length > 0) {
-      query.createdAt = dateFilter; // 🔥 important fix
+    // 🔥 BRANCH FILTER
+    if (branchId && branchId !== "all") {
+      query.branchId = branchId;
     }
 
-    // ✅ 4. FETCH DATA (RELIABLE METHOD)
+    // 🔥 DATE FILTER
+    if (Object.keys(dateFilter).length > 0) {
+      query.transactionDate = dateFilter; // 🔥 FIXED (use transactionDate)
+    }
+
+    // ✅ FETCH
     const transactions = await Transaction.find(query);
 
     let totalSales = 0;
     let totalPurchase = 0;
-    let totalAmount = 0; 
+    let totalAmount = 0;
+
+    const monthlyData = {};
 
     transactions.forEach((t) => {
+      const month = new Date(t.transactionDate).toLocaleString("default", {
+        month: "short",
+      });
+
+      if (!monthlyData[month]) {
+        monthlyData[month] = {
+          sales: 0,
+          purchase: 0,
+        };
+      }
+
       if (t.type === "sale") {
         totalSales += t.totalAmount;
-      } else if (t.type === "purchase") {
+        monthlyData[month].sales += t.totalAmount;
+      } else {
         totalPurchase += t.totalAmount;
+        monthlyData[month].purchase += t.totalAmount;
       }
-      totalAmount += t.totalAmount; // total amount 
+
+      totalAmount += t.totalAmount;
     });
 
-    const totalTransactions = transactions.length;
-    const profit = totalSales - totalPurchase;
+    const chartData = Object.keys(monthlyData).map((m) => ({
+      name: m,
+      sales: monthlyData[m].sales,
+      purchase: monthlyData[m].purchase,
+      profit: monthlyData[m].sales - monthlyData[m].purchase,
+    }));
 
     res.json({
-      totalTransactions,
+      totalTransactions: transactions.length,
       totalSales,
       totalPurchase,
-      profit,
+      profit: totalSales - totalPurchase,
       totalAmount,
+      chartData, // 🔥 NEW
     });
 
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 exports.getAnalytics = async (req, res) => {
   try {
-    const { period, startDate, endDate } = req.query;
+    const { period, startDate, endDate, branchId } = req.query;
     const userId = req.user.id;
 
     let groupFormat;
@@ -120,6 +139,10 @@ exports.getAnalytics = async (req, res) => {
         $lte: new Date(endDate),
       };
     }
+    // 🔥 BRANCH FILTER
+    if (branchId && branchId !== "all") {
+  match.branchId = new mongoose.Types.ObjectId(branchId);
+}
 
     const data = await Transaction.aggregate([
       { $match: match },
@@ -167,7 +190,7 @@ exports.getAnalytics = async (req, res) => {
 // 📊 PRODUCT ANALYTICS (TOP SELLING PRODUCTS - FINAL)
 exports.getProductAnalytics = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate,branchId } = req.query;
     const userId = req.user.id;
 
     // 📅 OPTIONAL DATE FILTER
@@ -181,6 +204,10 @@ exports.getProductAnalytics = async (req, res) => {
         $lte: new Date(endDate),
       };
     }
+    // 🔥 BRANCH FILTER
+    if (branchId && branchId !== "all") {
+  match.branchId = new mongoose.Types.ObjectId(branchId);
+}
 
     const data = await Transaction.aggregate([
       { $match: match },

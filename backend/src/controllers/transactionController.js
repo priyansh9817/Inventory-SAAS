@@ -1,7 +1,10 @@
 const Transaction = require("../models/Transaction");
 const Product = require("../models/Product");
+const Branch = require("../models/Branch");
 
 // ➕ ADD TRANSACTION
+
+
 exports.addTransaction = async (req, res) => {
   try {
     const {
@@ -9,62 +12,72 @@ exports.addTransaction = async (req, res) => {
       productId,
       quantity,
       pricePerUnit,
-      transactionDate, // 🔥 NEW
+      transactionDate,
+      branchId, // 🔥 REQUIRED
     } = req.body;
 
     // ✅ validation
-    if (!type || !productId || !quantity || !pricePerUnit) {
-      return res.status(400).json({ message: "All fields required" });
+    if (!type || !productId || !quantity || !pricePerUnit || !branchId) {
+      return res.status(400).json({
+        message: "All fields required",
+      });
     }
 
-    if (quantity <= 0 || pricePerUnit <= 0) {
-      return res.status(400).json({ message: "Invalid values" });
-    }
-
-    // ✅ find product
-    const product = await Product.findOne({
-      _id: productId,
+    // 🔐 CHECK BRANCH
+    const branch = await Branch.findOne({
+      _id: branchId,
       userId: req.user.id,
     });
 
+    if (!branch) {
+      return res.status(404).json({
+        message: "Invalid branch",
+      });
+    }
+
+    // ✅ FIND PRODUCT WITH BRANCH
+    const product = await Product.findOne({
+      _id: productId,
+      userId: req.user.id,
+      branchId, // 🔥 IMPORTANT
+    });
+
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({
+        message: "Product not found in this branch",
+      });
     }
 
     // 🔥 STOCK LOGIC
     if (type === "purchase") {
       product.stock += quantity;
-    }
-    else if (type === "sale") {
+    } else if (type === "sale") {
       if (product.stock < quantity) {
         return res.status(400).json({
           message: "Insufficient stock ❌",
         });
       }
       product.stock -= quantity;
-    }
-    else {
-      return res.status(400).json({ message: "Invalid type" });
+    } else {
+      return res.status(400).json({
+        message: "Invalid type",
+      });
     }
 
     await product.save();
 
-    // 🔥 total calculation
     const totalAmount = quantity * pricePerUnit;
 
-    // 🔥 save transaction
     const transaction = await Transaction.create({
       type,
       productId,
       quantity,
       pricePerUnit,
       totalAmount,
-
-      // ✅ USER SELECTED DATE
+      branchId, // 🔥 SAVE THIS
       transactionDate: transactionDate
         ? new Date(transactionDate)
         : new Date(),
-
       userId: req.user.id,
     });
 
@@ -85,10 +98,17 @@ exports.addTransaction = async (req, res) => {
 
 exports.getTransactions = async (req, res) => {
   try {
-    const { startDate, endDate, type } = req.query;
+    const { startDate, endDate, type, branchId } = req.query;
+
+    if (!branchId) {
+      return res.status(400).json({
+        message: "branchId is required",
+      });
+    }
 
     const filter = {
       userId: req.user.id,
+      branchId,
       // 🔥 FIX: handle old + new data
       $or: [
         { isDeleted: false },
@@ -143,15 +163,20 @@ exports.getTransactions = async (req, res) => {
 exports.getLedger = async (req, res) => {
   try {
     const { productId } = req.params;
+    const { branchId } = req.query;
 
-    const transactions = await Transaction.find({
+    const filter = {
       productId,
       userId: req.user.id,
       $or: [
         { isDeleted: false },
         { isDeleted: { $exists: false } },
       ],
-    });
+    };
+
+    if (branchId) filter.branchId = branchId;
+
+    const transactions = await Transaction.find(filter);
 
     let balance = 0;
 
@@ -288,14 +313,21 @@ exports.restoreTransaction = async (req, res) => {
 };
 
 
-
 // Deleted Page
 exports.getDeletedTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({
+    const { branchId } = req.query;
+
+    const filter = {
       userId: req.user.id,
       isDeleted: true,
-    })
+    };
+
+    if (branchId && branchId !== "all") {
+      filter.branchId = branchId;
+    }
+
+    const transactions = await Transaction.find(filter)
       .populate("productId", "name")
       .sort({ transactionDate: -1 });
 

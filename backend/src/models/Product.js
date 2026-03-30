@@ -15,12 +15,17 @@ const productSchema = new mongoose.Schema(
       ref: "User",
     },
     category: {
-  type: String,
-  required: true,
-},
+      type: String,
+      required: true,
+    },
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+    },
   },
   {
     timestamps: true
-});
+  });
 
 module.exports = mongoose.model("Product", productSchema);

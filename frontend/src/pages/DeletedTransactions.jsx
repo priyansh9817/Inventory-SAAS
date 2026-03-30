@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
+import { BranchContext } from "../context/BranchContext";
 
 const DeletedTransactions = () => {
+  const { branchId } = useContext(BranchContext);
   const [transactions, setTransactions] = useState([]);
 
   const fetchDeleted = async () => {
     try {
-      const res = await API.get("/transactions/deleted");
+      const res = await API.get(`/transactions/deleted?branchId=${branchId}`);
       setTransactions(res.data);
     } catch {
       toast.error("Failed to load deleted data ❌");
@@ -15,8 +17,8 @@ const DeletedTransactions = () => {
   };
 
   useEffect(() => {
-    fetchDeleted();
-  }, []);
+    if (branchId) fetchDeleted();
+  }, [branchId]);
 
   const handleRestore = async (id) => {
     try {

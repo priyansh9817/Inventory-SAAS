@@ -1,23 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import API from "../api/axios";
+import { BranchContext } from "../context/BranchContext";
 
 const Ledger = () => {
+  const { branchId } = useContext(BranchContext);
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [ledger, setLedger] = useState([]);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (branchId) fetchProducts();
+  }, [branchId]);
 
   const fetchProducts = async () => {
-    const res = await API.get("/products");
+    const res = await API.get(`/products?branchId=${branchId}`);
     setProducts(res.data);
   };
 
   const fetchLedger = async () => {
     if (!selectedProduct) return;
-    const res = await API.get(`/transactions/ledger/${selectedProduct}`);
+    const res = await API.get(`/transactions/ledger/${selectedProduct}?branchId=${branchId}`);
     setLedger(res.data);
   };
 

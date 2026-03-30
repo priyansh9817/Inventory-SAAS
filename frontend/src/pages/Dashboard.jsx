@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
-import * as XLSX from "xlsx"; // For Excel export
-import { saveAs } from "file-saver"; // For saving files
-
+import { useEffect, useState, useContext } from "react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import API from "../api/axios";
-import { Cell } from "recharts";
+import { BranchContext } from "../context/BranchContext";
 import {
   BarChart,
   Bar,
@@ -13,83 +12,71 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Legend,
+  Cell,
 } from "recharts";
 
-const colors = [
-  "#22C55E", // green
-  "#3B82F6", // blue
-  "#F59E0B", // yellow
-  "#EF4444", // red
-  "#A855F7", // purple
-];
+const colors = ["#22C55E", "#3B82F6", "#F59E0B", "#EF4444", "#A855F7"];
 
 const Dashboard = () => {
+  const { branchId, branches} = useContext(BranchContext);
+  
   const [data, setData] = useState({});
+  const [overallData, setOverallData] = useState({});
+  const [chartData, setChartData] = useState([]);
+  const [productData, setProductData] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
-  const [chartData, setChartData] = useState([]); // ✅ FIXED
   const [period, setPeriod] = useState("monthly");
-  const [productData, setProductData] = useState([]); // product analytics
+  const [viewMode, setViewMode] = useState("branch"); // 🔥 NEW
 
   // 🔄 Dashboard Data
   const fetchData = async () => {
     try {
-      let url = "/dashboard";
+      let url = "/dashboard?";
+
+      if (viewMode === "branch" && branchId) {
+        url += `branchId=${branchId}`;
+      } else {
+        url += `branchId=all`;
+      }
 
       if (filter) {
-        url += `?filter=${filter}`;
+        url += `&filter=${filter}`;
       }
 
       const res = await API.get(url);
       setData(res.data);
+      setChartData(res.data.chartData || []);
     } catch (error) {
       console.log(error);
     }
   };
 
-// excel export
-  const exportToExcel = (data) => {
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
+  // 
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const blob = new Blob([excelBuffer], {
-      type: "application/octet-stream",
-    });
-
-    saveAs(blob, "inventory-report.xlsx");
-  };
-  // 📊 PRODUCT ANALYTICS (TOP SELLING PRODUCTS)
-  const fetchProductAnalytics = async () => {
-    try {
-      const res = await API.get("/dashboard/product-analytics");
-
-      console.log("PRODUCT DATA:", res.data);
-
-      const formatted = res.data.map((item) => ({
-        name: item.name,
-        sales: item.sales, // ✅ FIXED
-      }));
-
-      setProductData(formatted);
-
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const fetchOverallData = async () => {
+  try {
+    const res = await API.get("/dashboard?branchId=all");
+    setOverallData(res.data);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
   // 📊 Analytics Data
   const fetchAnalytics = async () => {
     try {
-      const res = await API.get(`/dashboard/analytics?period=${period}`);
+      let url = `/dashboard/analytics?period=${period}`;
 
-      // 📅 LABEL MAPS
+      if (viewMode === "branch" && branchId) {
+        url += `&branchId=${branchId}`;
+      } else {
+        url += `&branchId=all`;
+      }
+
+      const res = await API.get(url);
+
       const monthLabels = {
         1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
         5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
@@ -104,13 +91,8 @@ const Dashboard = () => {
       const formatted = res.data.map((item) => {
         let label = item._id;
 
-        if (period === "monthly") {
-          label = monthLabels[item._id];
-        } else if (period === "weekly") {
-          label = weekLabels[item._id];
-        } else if (period === "yearly") {
-          label = item._id.toString(); // year 그대로
-        }
+        if (period === "monthly") label = monthLabels[item._id];
+        else if (period === "weekly") label = weekLabels[item._id];
 
         return {
           name: label,
@@ -127,156 +109,171 @@ const Dashboard = () => {
     }
   };
 
+  // 📊 Product Analytics
+  const fetchProductAnalytics = async () => {
+    try {
+      let url = "/dashboard/product-analytics";
+
+      if (viewMode === "branch" && branchId) {
+        url += `?branchId=${branchId}`;
+      } else {
+        url += `?branchId=all`;
+      }
+
+      const res = await API.get(url);
+
+      const formatted = res.data.map((item) => ({
+        name: item.name,
+        sales: item.sales,
+      }));
+
+      setProductData(formatted);
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // 📤 Export Excel
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(chartData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+
+    saveAs(blob, "dashboard-report.xlsx");
+  };
+
   // 🔁 Load data
   useEffect(() => {
     setLoading(true);
-
-    Promise.all([fetchData(), fetchAnalytics()]).finally(() =>
-      setLoading(false)
-    );
-    fetchProductAnalytics();
-
-  }, [period]);
+    Promise.all([
+      fetchOverallData(),
+      fetchData(),
+      fetchProductAnalytics(),
+    ]).finally(() => setLoading(false));
+  }, [branchId, period, viewMode, filter]);
 
   // ⏳ Loader
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-indigo-500"></div>
+        <div className="animate-spin h-10 w-10 border-t-2 border-indigo-500 rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="p-3 sm:p-5 max-w-7xl mx-auto">
 
-      {/* 📅 FILTER */}
-      <div className="mb-6 flex gap-2">
+      {/* OVERALL */}
+      <div className="bg-[#020617] border border-gray-800 p-4 rounded-xl mb-5">
+        <h2 className="text-sm sm:text-base text-gray-400 mb-3">Overall (All Branches)</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Transactions", value: overallData.totalTransactions || 0, color: "text-white" },
+            { label: "Sales", value: `₹${overallData.totalSales || 0}`, color: "text-green-400" },
+            { label: "Purchase", value: `₹${overallData.totalPurchase || 0}`, color: "text-red-400" },
+            { label: "Profit", value: `₹${overallData.profit || 0}`, color: "text-indigo-400" },
+          ].map((item) => (
+            <div key={item.label} className="bg-[#111827] p-3 rounded-lg">
+              <p className="text-gray-400 text-xs">{item.label}</p>
+              <p className={`${item.color} text-base sm:text-lg font-bold mt-1`}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* FILTER */}
+      <div className="mb-5 flex flex-wrap gap-2">
         <select
-          className="bg-[#111827] border border-gray-700 p-2 rounded"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          value={period}
+          onChange={(e) => { setFilter(e.target.value); setPeriod(e.target.value); }}
+          className="bg-[#111827] border border-gray-700 p-2 rounded text-sm flex-1 min-w-[120px]"
         >
           <option value="">All</option>
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
           <option value="quarterly">Quarterly</option>
-        </select>
-
-        <button
-          onClick={fetchData}
-          className="bg-indigo-500 px-4 rounded"
-        >
-          Apply
-        </button>
-
-        {/* 📊 Period Selector */}
-        <select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          className="bg-[#111827] border border-gray-700 p-2 rounded"
-        >
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
         </select>
+        <button onClick={exportToExcel} className="bg-green-500 px-4 py-2 rounded text-sm whitespace-nowrap">
+          Export Excel
+        </button>
       </div>
 
-      {/* 📊 CARDS */}
-      <div className="bg-[#0f172a] p-5 rounded-xl border border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300">
+      {/* BRANCH CARD */}
+      <div className="bg-gradient-to-br from-[#020617] to-[#0f172a] border border-gray-800 p-4 rounded-xl mb-5 shadow-lg">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-sm sm:text-base font-semibold text-white">
+              {viewMode === "all" ? "All Branches" : branches.find(b => b._id === branchId)?.name || "Selected Branch"}
+            </h2>
+            <p className="text-xs text-gray-400">
+              {viewMode === "all" ? "Combined performance" : "Branch performance"}
+            </p>
+          </div>
+          <span className="text-xs px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded">
+            {viewMode === "all" ? "ALL" : "BRANCH"}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Transactions", value: data.totalTransactions || 0, color: "text-white" },
+            { label: "Sales", value: `₹${data.totalSales || 0}`, color: "text-green-400" },
+            { label: "Purchase", value: `₹${data.totalPurchase || 0}`, color: "text-red-400" },
+            { label: "Profit", value: `₹${data.profit || 0}`, color: data.profit >= 0 ? "text-indigo-400" : "text-red-400" },
+          ].map((item) => (
+            <div key={item.label} className="bg-[#111827] p-3 rounded-lg border border-gray-700 hover:scale-105 transition">
+              <p className="text-xs text-gray-400">{item.label}</p>
+              <p className={`${item.color} text-base sm:text-lg font-bold mt-1`}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
-  {/* 🔥 TOP */}
-  <div className="flex items-center justify-between">
-    <p className="text-gray-400 text-sm">Transactions</p>
-
-    <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded">
-      Total
-    </span>
-  </div>
-
-  {/* 🔥 COUNT */}
-  <h2 className="text-2xl font-bold text-white mt-2">
-    ₹{data.totalAmount}
-  </h2>
-
-  {/* 🔥 TOTAL AMOUNT */}
-  <p className="text-lg text-indigo-400 mt-1 font-semibold">
-    {data.totalTransactions}
-    
-  </p>
-
-  {/* 🔥 DIVIDER */}
-  <div className="border-t border-gray-800 my-3"></div>
-
-  {/* 🔥 SALES + PURCHASE */}
-  <div className="flex justify-between text-sm">
-
-    {/* SALES */}
-    <div className="flex flex-col">
-      <span className="text-gray-400">Sales</span>
-      <span className="text-green-400 font-medium">
-        ₹{data.totalSales}
-      </span>
-    </div>
-
-    {/* PURCHASE */}
-    <div className="flex flex-col text-right">
-      <span className="text-gray-400">Purchase</span>
-      <span className="text-red-400 font-medium">
-        ₹{data.totalPurchase}
-      </span>
-    </div>
-
-  </div>
-
-</div>
-
-      {/* 📈 REAL CHART */}
-      <div className="mt-8 bg-[#111827] p-4 rounded border border-gray-800">
-
-        <h2 className="mb-4">Analytics</h2>
-
-        <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
-          <BarChart data={chartData} barGap={10} barCategoryGap="20%">
-
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-
-            <XAxis dataKey="name" stroke="#9CA3AF" />
-            <YAxis stroke="#9CA3AF" />
-
-            <Tooltip />
-
-            <Legend />
-            <Bar dataKey="sales" radius={[6, 6, 0, 0]}>
-              {productData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={colors[index % colors.length]}
-                />
+      {/* CHART */}
+      <div className="bg-[#111827] p-4 rounded-xl border border-gray-800 mb-5">
+        <h2 className="text-sm sm:text-base font-semibold mb-3">Analytics</h2>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+            <CartesianGrid stroke="#374151" />
+            <XAxis dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 11 }} />
+            <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} width={50} />
+            <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "none", fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Bar dataKey="sales">
+              {chartData.map((_, i) => (
+                <Cell key={i} fill={colors[i % colors.length]} />
               ))}
             </Bar>
-            <Bar dataKey="purchase" fill="#EF4444" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="purchase" fill="#EF4444" />
             <Bar dataKey="profit" fill="#6366F1" />
-
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-8 bg-[#111827] p-4 rounded border border-gray-800">
-
-        <h2 className="mb-4">Top Products</h2>
-
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={productData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="name" stroke="#ccc" />
-            <YAxis stroke="#ccc" />
-            <Tooltip />
+      {/* TOP PRODUCTS */}
+      <div className="bg-[#111827] p-4 rounded-xl border border-gray-800">
+        <h2 className="text-sm sm:text-base font-semibold mb-3">Top Products</h2>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={productData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+            <CartesianGrid stroke="#374151" />
+            <XAxis dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 11 }} />
+            <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} width={50} />
+            <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "none", fontSize: 12 }} />
             <Bar dataKey="sales" fill="#22C55E" />
           </BarChart>
         </ResponsiveContainer>
-
       </div>
 
     </div>

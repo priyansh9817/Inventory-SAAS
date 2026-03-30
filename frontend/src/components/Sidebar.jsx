@@ -26,7 +26,10 @@ const Sidebar = ({ closeSidebar }) => {
       path: "/deleted-transactions",
       icon: <Recycle size={18} />,
     },
-    
+    {
+  name: "Branches",
+  path: "/branches",
+},
     {
       name: "Ledger",
       path: "/ledger",
