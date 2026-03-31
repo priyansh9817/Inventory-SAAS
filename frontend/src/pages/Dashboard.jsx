@@ -165,115 +165,134 @@ const Dashboard = () => {
   // ⏳ Loader
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <div className="animate-spin h-10 w-10 border-t-2 border-indigo-500 rounded-full"></div>
+      <div className="flex flex-col justify-center items-center h-full gap-3">
+        <div className="animate-spin h-10 w-10 border-t-2 border-b-2 border-indigo-500 rounded-full"></div>
+        <p className="text-gray-500 text-sm animate-pulse">Loading dashboard...</p>
       </div>
     );
   }
 
+  const branchName = branches.find(b => b._id === branchId)?.name || "Selected Branch";
+
   return (
-    <div className="p-3 sm:p-5 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto animate-fadeIn">
 
-      {/* OVERALL */}
-      <div className="bg-[#020617] border border-gray-800 p-4 rounded-xl mb-5">
-        <h2 className="text-sm sm:text-base text-gray-400 mb-3">Overall (All Branches)</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Transactions", value: overallData.totalTransactions || 0, color: "text-white" },
-            { label: "Sales", value: `₹${overallData.totalSales || 0}`, color: "text-green-400" },
-            { label: "Purchase", value: `₹${overallData.totalPurchase || 0}`, color: "text-red-400" },
-            { label: "Profit", value: `₹${overallData.profit || 0}`, color: "text-indigo-400" },
-          ].map((item) => (
-            <div key={item.label} className="bg-[#111827] p-3 rounded-lg">
-              <p className="text-gray-400 text-xs">{item.label}</p>
-              <p className={`${item.color} text-base sm:text-lg font-bold mt-1`}>{item.value}</p>
-            </div>
-          ))}
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Dashboard</h1>
+          <p className="text-xs text-gray-500 mt-0.5">{branchName} &mdash; Live Overview</p>
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={period}
+            onChange={(e) => { setFilter(e.target.value); setPeriod(e.target.value); }}
+            className="bg-[#111827] border border-gray-700 hover:border-indigo-500 focus:border-indigo-500 focus:outline-none transition-colors p-2 rounded-lg text-sm"
+          >
+            <option value="">All Time</option>
+            <option value="daily">Today</option>
+            <option value="weekly">This Week</option>
+            <option value="monthly">This Month</option>
+            <option value="quarterly">This Quarter</option>
+            <option value="yearly">This Year</option>
+          </select>
+          <button
+            onClick={exportToExcel}
+            className="bg-green-600 hover:bg-green-500 active:scale-95 transition-all px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-green-500/25 whitespace-nowrap"
+          >
+            ↓ Export
+          </button>
         </div>
       </div>
 
-      {/* FILTER */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        <select
-          value={period}
-          onChange={(e) => { setFilter(e.target.value); setPeriod(e.target.value); }}
-          className="bg-[#111827] border border-gray-700 p-2 rounded text-sm flex-1 min-w-[120px]"
-        >
-          <option value="">All</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="quarterly">Quarterly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-        <button onClick={exportToExcel} className="bg-green-500 px-4 py-2 rounded text-sm whitespace-nowrap">
-          Export Excel
-        </button>
-      </div>
-
-      {/* BRANCH CARD */}
-      <div className="bg-gradient-to-br from-[#020617] to-[#0f172a] border border-gray-800 p-4 rounded-xl mb-5 shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-sm sm:text-base font-semibold text-white">
-              {viewMode === "all" ? "All Branches" : branches.find(b => b._id === branchId)?.name || "Selected Branch"}
-            </h2>
-            <p className="text-xs text-gray-400">
-              {viewMode === "all" ? "Combined performance" : "Branch performance"}
-            </p>
+      {/* OVERALL STATS */}
+      <p className="text-xs uppercase tracking-widest text-gray-600 mb-2">All Branches</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: "Transactions", value: overallData.totalTransactions || 0, color: "text-white", bg: "from-gray-800 to-gray-900", glow: "hover:shadow-white/5", icon: "📦", border: "hover:border-gray-600" },
+          { label: "Total Sales", value: `₹${overallData.totalSales || 0}`, color: "text-green-400", bg: "from-green-900/30 to-gray-900", glow: "hover:shadow-green-500/20", icon: "📈", border: "hover:border-green-500/40" },
+          { label: "Total Purchase", value: `₹${overallData.totalPurchase || 0}`, color: "text-red-400", bg: "from-red-900/30 to-gray-900", glow: "hover:shadow-red-500/20", icon: "🛒", border: "hover:border-red-500/40" },
+          { label: "Net Profit", value: `₹${overallData.profit || 0}`, color: "text-indigo-400", bg: "from-indigo-900/30 to-gray-900", glow: "hover:shadow-indigo-500/20", icon: "💰", border: "hover:border-indigo-500/40" },
+        ].map((item) => (
+          <div key={item.label} className={`bg-gradient-to-br ${item.bg} border border-gray-800 ${item.border} rounded-2xl p-4 hover:scale-[1.03] hover:shadow-xl ${item.glow} transition-all duration-250 cursor-default group`}>
+            <div className="flex justify-between items-start">
+              <p className="text-gray-400 text-xs font-medium">{item.label}</p>
+              <span className="text-lg group-hover:scale-125 transition-transform duration-200">{item.icon}</span>
+            </div>
+            <p className={`${item.color} text-lg sm:text-2xl font-bold mt-2 tracking-tight`}>{item.value}</p>
           </div>
-          <span className="text-xs px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded">
-            {viewMode === "all" ? "ALL" : "BRANCH"}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Transactions", value: data.totalTransactions || 0, color: "text-white" },
-            { label: "Sales", value: `₹${data.totalSales || 0}`, color: "text-green-400" },
-            { label: "Purchase", value: `₹${data.totalPurchase || 0}`, color: "text-red-400" },
-            { label: "Profit", value: `₹${data.profit || 0}`, color: data.profit >= 0 ? "text-indigo-400" : "text-red-400" },
-          ].map((item) => (
-            <div key={item.label} className="bg-[#111827] p-3 rounded-lg border border-gray-700 hover:scale-105 transition">
-              <p className="text-xs text-gray-400">{item.label}</p>
-              <p className={`${item.color} text-base sm:text-lg font-bold mt-1`}>{item.value}</p>
+        ))}
+      </div>
+
+      {/* BRANCH STATS */}
+      <p className="text-xs uppercase tracking-widest text-gray-600 mb-2">Branch — {branchName}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: "Transactions", value: data.totalTransactions || 0, color: "text-white", bg: "from-gray-800 to-gray-900", glow: "hover:shadow-white/5", icon: "📦", border: "hover:border-gray-600" },
+          { label: "Sales", value: `₹${data.totalSales || 0}`, color: "text-green-400", bg: "from-green-900/30 to-gray-900", glow: "hover:shadow-green-500/20", icon: "📈", border: "hover:border-green-500/40" },
+          { label: "Purchase", value: `₹${data.totalPurchase || 0}`, color: "text-red-400", bg: "from-red-900/30 to-gray-900", glow: "hover:shadow-red-500/20", icon: "🛒", border: "hover:border-red-500/40" },
+          { label: "Profit", value: `₹${data.profit || 0}`, color: data.profit >= 0 ? "text-indigo-400" : "text-red-400", bg: data.profit >= 0 ? "from-indigo-900/30 to-gray-900" : "from-red-900/30 to-gray-900", glow: "hover:shadow-indigo-500/20", icon: data.profit >= 0 ? "💰" : "📉", border: "hover:border-indigo-500/40" },
+        ].map((item) => (
+          <div key={item.label} className={`bg-gradient-to-br ${item.bg} border border-gray-800 ${item.border} rounded-2xl p-4 hover:scale-[1.03] hover:shadow-xl ${item.glow} transition-all duration-250 cursor-default group`}>
+            <div className="flex justify-between items-start">
+              <p className="text-gray-400 text-xs font-medium">{item.label}</p>
+              <span className="text-lg group-hover:scale-125 transition-transform duration-200">{item.icon}</span>
             </div>
-          ))}
+            <p className={`${item.color} text-lg sm:text-2xl font-bold mt-2 tracking-tight`}>{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* CHARTS ROW */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+        {/* ANALYTICS CHART */}
+        <div className="bg-gradient-to-br from-[#0f172a] to-[#020617] border border-gray-800 hover:border-indigo-500/30 rounded-2xl p-4 shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-xs uppercase tracking-widest text-gray-500">Analytics</p>
+            <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{period || "All"}</span>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+              <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+              <XAxis dataKey="name" stroke="#4B5563" tick={{ fontSize: 10 }} />
+              <YAxis stroke="#4B5563" tick={{ fontSize: 10 }} width={45} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12 }}
+                cursor={{ fill: "rgba(99,102,241,0.07)" }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="sales" radius={[6, 6, 0, 0]} fill="#22C55E" />
+              <Bar dataKey="purchase" fill="#EF4444" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="profit" fill="#6366F1" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      </div>
 
-      {/* CHART */}
-      <div className="bg-[#111827] p-4 rounded-xl border border-gray-800 mb-5">
-        <h2 className="text-sm sm:text-base font-semibold mb-3">Analytics</h2>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-            <CartesianGrid stroke="#374151" />
-            <XAxis dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 11 }} />
-            <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} width={50} />
-            <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "none", fontSize: 12 }} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="sales">
-              {chartData.map((_, i) => (
-                <Cell key={i} fill={colors[i % colors.length]} />
-              ))}
-            </Bar>
-            <Bar dataKey="purchase" fill="#EF4444" />
-            <Bar dataKey="profit" fill="#6366F1" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+        {/* TOP PRODUCTS CHART */}
+        <div className="bg-gradient-to-br from-[#0f172a] to-[#020617] border border-gray-800 hover:border-green-500/30 rounded-2xl p-4 shadow-lg hover:shadow-green-500/10 transition-all duration-300">
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-xs uppercase tracking-widest text-gray-500">Top Products</p>
+            <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">By Sales</span>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={productData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+              <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+              <XAxis dataKey="name" stroke="#4B5563" tick={{ fontSize: 10 }} />
+              <YAxis stroke="#4B5563" tick={{ fontSize: 10 }} width={45} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12 }}
+                cursor={{ fill: "rgba(34,197,94,0.07)" }}
+              />
+              <Bar dataKey="sales" radius={[6, 6, 0, 0]}>
+                {productData.map((_, i) => (
+                  <Cell key={i} fill={colors[i % colors.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
 
-      {/* TOP PRODUCTS */}
-      <div className="bg-[#111827] p-4 rounded-xl border border-gray-800">
-        <h2 className="text-sm sm:text-base font-semibold mb-3">Top Products</h2>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={productData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-            <CartesianGrid stroke="#374151" />
-            <XAxis dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 11 }} />
-            <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} width={50} />
-            <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "none", fontSize: 12 }} />
-            <Bar dataKey="sales" fill="#22C55E" />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
 
     </div>
