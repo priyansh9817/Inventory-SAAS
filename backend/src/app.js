@@ -32,5 +32,10 @@ app.use("/api/branches", branchRoutes);
 app.get("/", (req, res) => {
   res.send("API Running...");
 });
+// health check route for cron ping
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok", uptime: process.uptime() });
+});
+
 
 module.exports = app;
